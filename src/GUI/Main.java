@@ -12,7 +12,9 @@ import java.util.ArrayList;
  * @author jos56
  */
 public class Main extends javax.swing.JFrame {
+
     String[] operador = {"*", "/", "+", "-"};
+
     /**
      * Creates new form Main
      */
@@ -89,45 +91,18 @@ public class Main extends javax.swing.JFrame {
         String codigo = entrada.getText();
         String[] division = codigo.split("\n");
         EvaluarSintaxis(division);
+        System.out.println("Ha funcionado");
+        /*
         List<String> expresion = new ArrayList<String>();
         expresion = descomponer(codigo);
+        */
 
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments
      */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Main.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Main.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Main.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Main.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new Main().setVisible(true);
-            }
-        });
-    }
+ 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextArea entrada;
@@ -163,6 +138,7 @@ public class Main extends javax.swing.JFrame {
             temp = ex.split("");
             if (!(temp[0].equals("<") && (temp[ex.length() - 1].equals(">")))) {
                 //la expresion es invalida desde el princicio
+                System.out.println("error inicio");
                 error();
                 return;
             }
@@ -170,7 +146,7 @@ public class Main extends javax.swing.JFrame {
                 EstadoQ1(ex);
             } else {
                 if (Character.isDigit(ex.charAt(1))) {
-                    EstadoQ2(ex);
+                    EstadoQ7(ex);
                 }
             }
         }
@@ -178,29 +154,39 @@ public class Main extends javax.swing.JFrame {
     }
 
     private void error() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        System.out.println("Error");
     }
 
     private void EstadoQ1(String ex) {
         String[] temp = ex.split("");
         String corte;
-        int i = 1;
+        int i = 1, j = 0;
 
         for (String a : temp) {
+
+            if (j == ex.length() - 1) {
+                //Quedo atrapado en el automata y es una linea invalida
+                System.out.println("error Q1");
+                error();
+                return;
+            }
             if (Character.isAlphabetic(a.charAt(0))) {
+
                 continue;
             } else {
                 if (Operador(a)) {
-                    EstadoQ2(ex, i);
+                    corte = ex.substring(i, ex.length());
+                    EstadoQ2(corte, i);
                     return;
                 } else {
                     if (a.equals("=")) {
-                        corte = ex.substring(i, ex.length());
+                        corte = ex.substring(i+1, ex.length());
                         EstadoQ6(corte, i);
                         return;
                     }
                 }
             }
+            j++;
             i++;
         }
     }
@@ -213,6 +199,7 @@ public class Main extends javax.swing.JFrame {
         String[] temp = ex.split("");
         int j = i;
         for (String a : temp) {
+            System.out.println(a);
             if (Character.isDigit(a.charAt(0))) {
                 //Cambio de estado
                 continue;
@@ -220,8 +207,11 @@ public class Main extends javax.swing.JFrame {
                 if (a.equals(">")) {
                     //Finaliza el automata y la expresion es aceptada
                     EstadoQ5();
+                    return;
                 } else {
-                    errorEstado();
+                    System.out.println("error Q6");
+                    error();
+                    return;
                 }
             }
 
@@ -233,21 +223,89 @@ public class Main extends javax.swing.JFrame {
     }
 
     private void EstadoQ5() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        System.out.println("Paso el automata");
     }
 
     private boolean Operador(String a) {
         boolean x = false;
-        for(String p : operador){
-           if(a.equals(p)){
-               x = true;
-               return x;
-           }
+        for (String p : operador) {
+            if (a.equals(p)) {
+                x = true;
+                return x;
+            }
         }
         return x;
     }
 
     private void EstadoQ2(String ex, int i) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        
+    }
+
+    private void EstadoQ7(String ex) {
+        String[] temp = ex.split("");
+        String corte = "";
+        int i = 1, j = 0;
+        for (String a : temp) {
+            if(a.equals("<")){
+                continue;
+            }
+            if (j == ex.length() - 1) {
+                //Quedo atrapado en el automata y es una linea invalida
+                error();
+                return;
+            }
+            if (Character.isDigit(a.charAt(0))) {
+                continue;
+            } else {
+                if (Operador(a)) {
+                    corte = ex.substring(i, ex.length());
+                    EstadoQ8(corte, i);
+                } else {
+                    if (Character.isAlphabetic(a.charAt(0))) {
+                        corte = ex.substring(i, ex.length());
+                        EstadoQ2(corte, i);
+                    } else {
+                        System.out.println("error Q7");
+                        error();
+                        return;
+                    }
+                }
+            }
+            j++;
+            i++;
+        }
+    }
+
+    private void EstadoQ8(String ex, int contador) {
+        String[] temp = ex.split("");
+        String corte = "";
+        int i = 1, j = 0;
+        for (String a : temp) {
+
+            if (Character.isDigit(a.charAt(0))) {
+                continue;
+            } else {
+                if (Operador(a)) {
+                    corte = ex.substring(i, ex.length());
+                    EstadoQ7(corte);
+                } else {
+                    if (Character.isAlphabetic(a.charAt(0))) {
+                        corte = ex.substring(i, ex.length());
+                        EstadoQ2(corte, i);
+                    } else {
+                        if (a.equals(">")) {
+                            EstadoQ5();
+                            return;
+                        } else {
+                            System.out.println("error Q8");
+                            error();
+                            return;
+                        }
+                    }
+                }
+            }
+            j++;
+            i++;
+        }
     }
 }
