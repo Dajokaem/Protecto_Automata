@@ -4,6 +4,9 @@
  */
 package GUI;
 
+import Clases.Operaciones;
+import Clases.ValidadorExpresion;
+import Clases.Variable;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -14,12 +17,24 @@ import java.util.ArrayList;
 public class Main extends javax.swing.JFrame {
 
     String[] operador = {"*", "/", "+", "-"};
+    ValidadorExpresion validador = new ValidadorExpresion();
+    String codigo;
+    String[] division;
+    int contador = 0;
+    mError merror = new mError();
+    List<Variable> variables = new ArrayList<Variable>();
+    Operaciones calculadora = new Operaciones();
 
     /**
      * Creates new form Main
      */
     public Main() {
+        System.out.println("Inicio");
         initComponents();
+        
+        salida.enable(false);
+       
+        System.out.println("Fin");
     }
 
     /**
@@ -35,7 +50,7 @@ public class Main extends javax.swing.JFrame {
         entrada = new javax.swing.JTextArea();
         jButton1 = new javax.swing.JButton();
         jScrollPane2 = new javax.swing.JScrollPane();
-        pantalla = new javax.swing.JTextArea();
+        salida = new javax.swing.JTextArea();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -51,9 +66,9 @@ public class Main extends javax.swing.JFrame {
             }
         });
 
-        pantalla.setColumns(20);
-        pantalla.setRows(5);
-        jScrollPane2.setViewportView(pantalla);
+        salida.setColumns(20);
+        salida.setRows(5);
+        jScrollPane2.setViewportView(salida);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -75,12 +90,12 @@ public class Main extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addGap(14, 14, 14)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 462, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createSequentialGroup()
                         .addGap(6, 6, 6)
                         .addComponent(jButton1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 129, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 462, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 129, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(22, Short.MAX_VALUE))
         );
 
@@ -88,28 +103,69 @@ public class Main extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        String codigo = entrada.getText();
-        String[] division = codigo.split("\n");
+        codigo = entrada.getText();
+        division = codigo.split("\n");
+        String sl = "";
         EvaluarSintaxis(division);
+        System.out.println(codigo);
         System.out.println("Ha funcionado");
-        /*
-        List<String> expresion = new ArrayList<String>();
-        expresion = descomponer(codigo);
-        */
+        if (!entrada.getText().equals("")) {
+            System.out.println("paso a ejecucion");
+            for (String linea : division) {
+                System.out.println("l: "+linea);
+                String corte = linea.substring(1, linea.length() - 1);
+                System.out.println("c: "+corte);
+                if (BuscarIgual(corte)) {
+                    int pos = BuscarIgualPos(corte);
+                    variables.add(new Variable(corte.substring(0, pos), corte.substring(pos + 1, corte.length())));
+                    System.out.println(corte.substring(pos+1, corte.length()));
+                    System.out.println(pos);
+                    System.out.println(variables.get(0).getNombre()+" = "+variables.get(0).getValor());
+                    System.out.println("v:" +variables.isEmpty());
+                    continue;
+                } else {
+                    if (BuscarVariableExp(corte)) {
+                        List<Integer> Posiciones = encontrarPosicionesVariables(corte);
+                        String expresionCompleta = reemplazarVariables(corte, variables);
+                        System.out.println(expresionCompleta);
+                        try {
+                            double resultado = calculadora.evaluar(expresionCompleta);
+                            // Convertir a entro y mostrar el resultado sin decimales
+                            sl = sl + resultado + "\n";
+                             
+                        } catch (Exception e) {
+                            System.out.println("Error por excepcion de calculadora"+e.getMessage());
+                            error();
+                        }
+                    }else{
+                        try {
+                            double resultado = calculadora.evaluar(corte);
+                            // Convertir a entro y mostrar el resultado sin decimales
+                            sl = sl + resultado + "\n";
+                             
+                        } catch (Exception e) {
+                            error();
+                        }
+                    }
+                }
+            }
+            salida.setText(sl);
+            variables.clear();
+        }
+
 
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments
      */
- 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextArea entrada;
     private javax.swing.JButton jButton1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JTextArea pantalla;
+    private javax.swing.JTextArea salida;
     // End of variables declaration//GEN-END:variables
 
     private List<String> descomponer(String codigo) {
@@ -133,6 +189,7 @@ public class Main extends javax.swing.JFrame {
     }
 
     private void EvaluarSintaxis(String[] expresion) {
+
         String[] temp;
         for (String ex : expresion) {
             temp = ex.split("");
@@ -143,18 +200,44 @@ public class Main extends javax.swing.JFrame {
                 return;
             }
             if (Character.isAlphabetic(ex.charAt(1))) {
-                EstadoQ1(ex);
+                if (BuscarIgual(ex)) {
+                    EstadoQ1(ex);
+                    continue;
+                } else {
+                    System.out.println("Operacion");
+                    String fin = ex.substring(1, ex.length() - 1);
+                    if (!validador.esValida(fin)) {
+                        System.out.println("Error al Validar");
+                        error();
+                        return;
+                    } else {
+                        System.out.println("PAso el automata");
+                        continue;
+                    }
+                }
             } else {
-                if (Character.isDigit(ex.charAt(1))) {
-                    EstadoQ7(ex);
+                System.out.println("Operacion");
+                String fin = ex.substring(1, ex.length() - 1);
+                if (!validador.esValida(fin)) {
+                    System.out.println("Error al Validar");
+                    error();
+                    return;
+                } else {
+                    System.out.println("PAso el automata");
                 }
             }
+
+            contador++;
         }
 
     }
 
     private void error() {
-        System.out.println("Error");
+        
+        entrada.setText("");
+        salida.enable(false);
+        merror.show();
+        
     }
 
     private void EstadoQ1(String ex) {
@@ -171,16 +254,17 @@ public class Main extends javax.swing.JFrame {
                 return;
             }
             if (Character.isAlphabetic(a.charAt(0))) {
-
+                j++;
+                i++;
                 continue;
             } else {
                 if (Operador(a)) {
                     corte = ex.substring(i, ex.length());
-                    EstadoQ2(corte, i);
+                    EstadoQ2(ex, i);
                     return;
                 } else {
                     if (a.equals("=")) {
-                        corte = ex.substring(i+1, ex.length());
+                        corte = ex.substring(i + 1, ex.length());
                         EstadoQ6(corte, i);
                         return;
                     }
@@ -191,17 +275,15 @@ public class Main extends javax.swing.JFrame {
         }
     }
 
-    private void EstadoQ2(String ex) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
     private void EstadoQ6(String ex, int i) {
         String[] temp = ex.split("");
         int j = i;
         for (String a : temp) {
             System.out.println(a);
             if (Character.isDigit(a.charAt(0))) {
-                //Cambio de estado
+                //Cambio de estado.
+                j++;
+                i++;
                 continue;
             } else {
                 if (a.equals(">")) {
@@ -222,8 +304,9 @@ public class Main extends javax.swing.JFrame {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
-    private void EstadoQ5() {
+    private boolean EstadoQ5() {
         System.out.println("Paso el automata");
+        return true;
     }
 
     private boolean Operador(String a) {
@@ -238,36 +321,58 @@ public class Main extends javax.swing.JFrame {
     }
 
     private void EstadoQ2(String ex, int i) {
-        
+        String corte = ex.substring(1, ex.length() - 1);
+        if (!validador.esValida(ex)) {
+            System.out.println("No es valida");
+            error();
+            return;
+        }
+        EstadoQ5();
     }
 
     private void EstadoQ7(String ex) {
+
+        System.out.println("Estado Q7");
         String[] temp = ex.split("");
         String corte = "";
         int i = 1, j = 0;
         for (String a : temp) {
-            if(a.equals("<")){
+            System.out.println(a);
+            if (a.equals("<")) {
+                j++;
+                i++;
                 continue;
             }
-            if (j == ex.length() - 1) {
+            if (j == ex.length() - 1 && ex.length() > 2) {
                 //Quedo atrapado en el automata y es una linea invalida
+                System.out.println("error atrapado automata Q7");
                 error();
                 return;
             }
             if (Character.isDigit(a.charAt(0))) {
+                j++;
+                i++;
                 continue;
             } else {
                 if (Operador(a)) {
                     corte = ex.substring(i, ex.length());
                     EstadoQ8(corte, i);
+                    return;
                 } else {
                     if (Character.isAlphabetic(a.charAt(0))) {
                         corte = ex.substring(i, ex.length());
                         EstadoQ2(corte, i);
-                    } else {
-                        System.out.println("error Q7");
-                        error();
                         return;
+                    } else {
+                        if (a.equals(">")) {
+                            EstadoQ8(ex, i);
+
+                        } else {
+                            System.out.println("error Q8");
+                            error();
+                            return;
+                        }
+
                     }
                 }
             }
@@ -277,25 +382,41 @@ public class Main extends javax.swing.JFrame {
     }
 
     private void EstadoQ8(String ex, int contador) {
+        System.out.println("Estado Q8");
         String[] temp = ex.split("");
         String corte = "";
         int i = 1, j = 0;
         for (String a : temp) {
-
+            System.out.println(a);
             if (Character.isDigit(a.charAt(0))) {
+                j++;
+                i++;
                 continue;
             } else {
                 if (Operador(a)) {
                     corte = ex.substring(i, ex.length());
                     EstadoQ7(corte);
+                    return;
                 } else {
                     if (Character.isAlphabetic(a.charAt(0))) {
                         corte = ex.substring(i, ex.length());
                         EstadoQ2(corte, i);
+                        return;
                     } else {
                         if (a.equals(">")) {
+
                             EstadoQ5();
-                            return;
+                            /*
+                            String fin = division[contador].substring(1,division[contador].length());
+                            if (validador.esValida(fin)) {
+                                EstadoQ5();
+                            }else{
+                                error();
+                                return;
+                            }
+
+                             */
+
                         } else {
                             System.out.println("error Q8");
                             error();
@@ -307,5 +428,116 @@ public class Main extends javax.swing.JFrame {
             j++;
             i++;
         }
+    }
+
+    private boolean BuscarIgual(String ex) {
+        String[] temp = ex.split("");
+        boolean x = false;
+        for (String a : temp) {
+            if (a.equals("=")) {
+                x = true;
+            }
+        }
+        return x;
+    }
+
+    private int BuscarIgualPos(String corte) {
+        String[] temp = corte.split("");
+        boolean x = false;
+        int i = 0, j = 0;
+        for (String a : temp) {
+            if (a.equals("=")) {
+                j = i;
+                break;
+            }
+            i++;
+        }
+        return j;
+
+    }
+
+    private boolean BuscarVariableExp(String corte) {
+        boolean x = false;
+        String[] temp = corte.split("");
+        for (String a : temp) {
+            System.out.println(a.charAt(0));
+            if (Character.isAlphabetic(a.charAt(0))) {
+                x = true;
+                break;
+            }
+        }
+        System.out.println(x);
+        return x;
+    }
+
+    public List<Integer> encontrarPosicionesVariables(String expresion) {
+         List<Integer> posiciones = new ArrayList<>();
+        boolean enVariable = false;
+        int inicio = -1;
+
+        for (int i = 0; i < expresion.length(); i++) {
+            char actual = expresion.charAt(i);
+
+            if (Character.isLowerCase(actual)) {
+                if (!enVariable) {
+                    inicio = i;
+                    enVariable = true;
+                }
+            } else {
+                if (enVariable) {
+                    // Agregar la posición de inicio cuando se termina la variable
+                    posiciones.add(inicio);
+                    enVariable = false;
+                }
+            }
+        }
+
+        // Agregar la última variable si termina al final de la expresión
+        if (enVariable) {
+            posiciones.add(inicio);
+        }
+
+        return posiciones;
+    }
+
+    public String reemplazarVariables(String expresion, List<Variable> variables) {
+        List<Integer> posiciones = encontrarPosicionesVariables(expresion);
+        StringBuilder nuevaExpresion = new StringBuilder(expresion);
+
+        for (int i = 0; i < posiciones.size(); i++) {
+            int posicion = posiciones.get(i);
+            String nombreVariable = obtenerNombreVariable(expresion, posicion);
+            System.out.println(nombreVariable);
+            String valor = buscarValor(nombreVariable);
+
+            // Reemplazar la variable en la expresión
+            nuevaExpresion.replace(posicion, posicion + nombreVariable.length(), valor);
+        }
+
+        return nuevaExpresion.toString();
+    }
+    
+
+    private  String buscarValor(String nombre) {
+        
+        for (Variable variable : variables) {
+            System.out.println("vn: "+variable.getNombre());
+            if (variable.getNombre().equals(nombre)) {
+                return variable.getValor();
+            }
+        }
+        return ""; // Devuelve una cadena vacía si no se encuentra la variable
+    }
+    private  String obtenerNombreVariable(String expresion, int posicion) {
+        StringBuilder nombre = new StringBuilder();
+        for (int i = posicion; i < expresion.length(); i++) {
+            char actual = expresion.charAt(i);
+            if (Character.isLowerCase(actual)) {
+                nombre.append(actual);
+            } else {
+                break; // Salir si no es parte de una variable
+            }
+        }
+        return nombre.toString();
     }
 }
